@@ -46,32 +46,59 @@ Antigravity 慢，主要不是读文件本身慢。我翻了自己几个星期�
 
 图里的 4 个编号，对应规则里的 4 件事：
 
-1. **先定位，再一轮读完。** 先用一条 `grep -rn` 拿到所有命中的文件和行号，再在同一轮里并行读要看的位置。一次读够 150 到 200 行，300 行以内的文件整份读，不一段一段往回补。
-2. **检索只用白名单里的命令。** 用 `grep`、`git ls-files`、`ls` 这些免审命令找代码，不写 `rg`、`find`、`cd … &&`；glob 加引号，git 参数用长写法。
-3. **反正要审的命令，合成一次跑。** `python3`、`npm`、构建、测试这类命令每次都要审。互不依赖的几步用 `&&` 串成一次，只审一次，也少等一轮。
+1. **先定位，再一轮读完。** macOS / Linux 先用 `grep -rn`、Windows 先用 `git grep -n` 或 `git ls-files` 拿到所有命中的文件和行号，再在同一轮里并行读要看的位置。一次读够 150 到 200 行，300 行以内的文件整份读，不一段一段往回补。
+2. **检索只用免审和系统原生命令。** macOS / Linux 用 `grep`、`git ls-files`、`ls` 等白名单命令，不写 `rg`、`find`、`cd … &&`；Windows（`pwsh` / `powershell`）优先用 `git grep`、`git ls-files`、`Select-String`、`Select-Object`，避开缺失的 `grep`/`head`/`tail`、PowerShell `diff` 别名陷阱和外层 `pwsh -c "..."` 引号。
+3. **反正要审的命令，合成一次跑。** `python3`（Windows 用 `python` / `py -3`，避开商店 `python3` 占位符）、`node`、`npm`、构建、测试这类命令每次都要审。互不依赖的几步合并成一次跑完（`bash` / `pwsh` 7 用 `&&`，PowerShell 5.1 用 `;`），只审一次，也少等一轮。
 4. **回答先给结论。** 不贴大段代码，不复述读到的内容，一般控制在 1,500 字以内。想要详细说明时，直接跟它说“详细讲”。
 
-另外还有几条小规则：小改动用 `edit_file`，同一文件里相邻的几处合成一次改；小任务不写计划文档。完整规则不到 70 行，可以直接看 [`AGENTS.md`](plugin/rules/AGENTS.md)。
+另外还有几条小规则：小改动用 `edit_file`，同一文件里相邻的几处合成一次改；跨多文件批量改用 Python 时显式带 UTF-8 与 `newline=''`；小任务不写计划文档。完整规则不到 70 行，可以直接看 [`AGENTS.md`](plugin/rules/AGENTS.md)。
 
 ## 安装
 
-需要 Antigravity 桌面版或 `agy` 命令行。
+需要 Antigravity 桌面版或 `agy` 命令行（全平台通用）：
 
 ```bash
 git clone https://github.com/oil-oil/agy-fast-io.git
 ```
 
 ```bash
-agy plugin install agy-fast-io/plugin
+agy plugin install ./agy-fast-io/plugin
 ```
 
-桌面版不用重启，新开的会话就会用上。没有 `agy` 命令行的话，也可以把 `plugin` 目录直接复制过去：
+桌面版不用重启，新开的会话就会用上。没有 `agy` 命令行的话，也可以直接复制到全局插件目录（下面两条命令同时支持首次安装和覆盖升级，不会把旧文件留下来或套出多余层级）：
+
+**macOS / Linux：**
 
 ```bash
+mkdir -p ~/.gemini/config/plugins
+rm -rf ~/.gemini/config/plugins/fast-io
 cp -R agy-fast-io/plugin ~/.gemini/config/plugins/fast-io
 ```
 
-装好后新开一个会话，让它找一段代码。如果它先跑一条 `grep -rn`，再在同一轮里读好几个文件，就说明规则生效了。桌面版的 Plugins 面板里也能看到 Fast IO；没出现的话，重启一次 Antigravity。
+**Windows（PowerShell 5.1 / 7）：**
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.gemini\config\plugins" | Out-Null
+if (Test-Path "$HOME\.gemini\config\plugins\fast-io") { Remove-Item -Recurse -Force "$HOME\.gemini\config\plugins\fast-io" }
+Copy-Item -Recurse "agy-fast-io\plugin" "$HOME\.gemini\config\plugins\fast-io"
+```
+
+装好后新开一个会话，让它找一段代码。如果 macOS / Linux 下先跑 `grep -rn`、Windows 下先跑 `git grep -n`（或 `git ls-files`），再在同一轮里并行读好几个文件，就说明规则生效了。桌面版的 Plugins 面板里也能看到 Fast IO；没出现的话，重启一次 Antigravity。
+
+### Windows 桌面版免审配置（可选）
+
+Windows 下的默认终端是 PowerShell（`pwsh`），规则已经避开了默认不存在的 POSIX 命令和 `python3` 商店占位符。如果桌面版在执行只读 `git grep` 或 `Select-String` 时仍触发确认或审查，可在 `~/.gemini/config/config.json`（或桌面版 Settings -> Command Allowlist）的 `permissions.allow` 中补充放行规则：
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "command(regex:git (status|diff|log|show|ls-files|rev-parse|grep).*)",
+      "command(regex:Select-String .*)"
+    ]
+  }
+}
+```
 
 想暂时关掉或重新打开：
 
@@ -87,7 +114,7 @@ agy plugin enable fast-io
 
 - **规则不是强制的。** 模型大多数时候会照做，偶尔不会，比如把几条 `git` 查看命令用 `&&` 串起来，反而触发了审查。
 - **改文件的审查省不掉。** 桌面版每次 `edit_file`、`write_file` 都要审，改动多的任务提速会少一些。
-- **`grep -rn` 不会跳过 `.gitignore` 里的目录。** 规则要求写明 `src`、`Sources` 这类源码目录；如果模型对含大量构建产物的根目录递归搜索，会比 `rg` 慢很多。
+- **macOS / Linux 下的 `grep -rn` 不会跳过 `.gitignore` 里的目录。** 规则要求写明 `src`、`Sources` 这类源码目录；如果模型对含大量构建产物的根目录递归搜索，会比 `rg` 慢很多（Windows 下优先使用的 `git grep -n` 在 Git 仓库中会自动跳过 `.gitignore`）。
 - **测试范围有限。** 只在一个 Swift 项目上做过对照测试。加不加插件的对比用的是 Gemini 4 Argon (High)，Carbon (High) 只测过规则改版前后。
 - **白名单会变。** 白名单是 Antigravity 内置的，以后版本变了，规则里的命令清单也要跟着改。
 - 规则是用中文写的。
