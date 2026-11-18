@@ -85,20 +85,9 @@ Copy-Item -Recurse "agy-fast-io\plugin" "$HOME\.gemini\config\plugins\fast-io"
 
 装好后新开一个会话，让它找一段代码。如果 macOS / Linux 下先跑 `grep -rn`、Windows 下先跑 `git grep -n`（或 `git ls-files`），再在同一轮里并行读好几个文件，就说明规则生效了。桌面版的 Plugins 面板里也能看到 Fast IO；没出现的话，重启一次 Antigravity。
 
-### Windows 桌面版免审配置（可选）
+### Windows 桌面版免审补充（可选）
 
-Windows 下的默认终端是 PowerShell（`pwsh`），规则已经避开了默认不存在的 POSIX 命令和 `python3` 商店占位符。如果桌面版在执行只读 `git grep` 或 `Select-String` 时仍触发确认或审查，可在 `~/.gemini/config/config.json`（或桌面版 Settings -> Command Allowlist）的 `permissions.allow` 中补充放行规则：
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "command(regex:git (status|diff|log|show|ls-files|rev-parse|grep).*)",
-      "command(regex:Select-String .*)"
-    ]
-  }
-}
-```
+Windows 下的默认终端是 PowerShell（`pwsh`），规则已经避开了默认不存在的 POSIX 命令和 `python3` 商店占位符。如果桌面版在当前权限档位下对只读 `git grep` 或 `Select-String` 仍触发确认或审查，可在桌面版 **Settings -> Command Allowlist** 中按需放行对应命令。
 
 想暂时关掉或重新打开：
 
