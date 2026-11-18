@@ -1,7 +1,7 @@
 {
   "name": "fast-io",
   "displayName": "Fast IO",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "让 Agent 用更少的回合找代码、读文件、改文件，并尽量只用桌面版安全审查白名单内的命令。",
   "author": {
     "name": "linzhihuang"
