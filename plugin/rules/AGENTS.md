@@ -34,7 +34,7 @@
 - **Windows（`pwsh` / `powershell`）**：
   - 不要盲调默认缺失的 `grep` `head` `tail` `wc` `stat` `du` `which` `basename` `dirname` `realpath`；截断与计数用 `| Select-Object -First 50`、`| Select-Object -Last 20`、`| Measure-Object -Line`，查命令位置用 `Get-Command`（或 `where.exe`）。
   - 避开 PowerShell 别名陷阱：`diff` 是 `Compare-Object`（比较路径字符串而非文件内容），对比文件用 `git diff --no-index -- a b`；`ls`、`cat` 只传裸路径，不要传 `-la`、`-n` 等 POSIX 短参数。
-  - 默认 Shell 已是 `pwsh` 时直接写裸命令，不要套 `pwsh -c "..."` 外层引号（合并成单 token 会导致白名单前缀匹配失效）；跨目录直接传加引号路径（如 `'D:/path/Sources'`），路径中不要带 `..`。glob 和正则加引号，git 参数同样用长写法（如 `git log --max-count=5 --oneline`）。（若用户规则已显式要求统一调用 Git Bash `bash.exe -lc "..."`，则按用户规则在 bash 内使用 POSIX 命令。）
+  - 默认 Shell 已是 `pwsh` 时直接写裸命令，不要套 `pwsh -c "..."` 外层引号（合并成单 token 会导致白名单前缀匹配失效）；跨目录直接传加引号路径（如 `'D:/path/Sources'`），路径中不要带 `..`。glob 和正则加引号，git 参数同样用长写法（如 `git log --max-count=5 --oneline`）。
 
 ### 跑脚本、构建、测试：能合并就一次跑完
 
